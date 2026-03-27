@@ -5,6 +5,8 @@ import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
+import { migrations } from './migrations'
+
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
 import { Articles } from './collections/Articles'
@@ -32,8 +34,8 @@ export default buildConfig({
       // 构建阶段：fallback 到 /tmp 避免找不到文件报错
       url: process.env.DATABASE_URL || 'file:/tmp/build.db',
     },
-    // 启动时自动同步 schema（等价于 drizzle push），新部署无需手动迁移
-    push: true,
+    // 生产环境启动时自动执行迁移文件（开发环境仍使用 push）
+    prodMigrations: migrations,
   }),
   sharp,
   plugins: [],
