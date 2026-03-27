@@ -21,9 +21,15 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# 声明 Coolify 通过 --build-arg 传入的参数
+ARG PAYLOAD_SECRET
+ARG PORT=4567
+
 # 构建时使用临时数据库，避免找不到文件报错
 ENV DATABASE_URL=file:/tmp/build.db
-ENV PAYLOAD_SECRET=build-time-secret-placeholder
+# 优先使用 build-arg 传入的 secret，回退到占位符
+ENV PAYLOAD_SECRET=${PAYLOAD_SECRET:-build-time-secret-placeholder}
+ENV PORT=${PORT}
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN bun run build
@@ -55,9 +61,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/file-uri-to-path ./n
 
 USER nextjs
 
-EXPOSE 3000
-ENV PORT=3000
+ARG PORT=4567
+ENV PORT=${PORT}
 ENV HOSTNAME=0.0.0.0
 
-# 运行时 DATABASE_URL 由环境变量注入（docker-compose / Coolify）
+EXPOSE ${PORT}
+
+# 运行时 DATABASE_URL / PAYLOAD_SECRET 由环境变量注入（docker-compose / Coolify）
 CMD ["node", "server.js"]

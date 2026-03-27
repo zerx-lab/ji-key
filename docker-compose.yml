@@ -1,6 +1,10 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        - PAYLOAD_SECRET=${PAYLOAD_SECRET}
+        - PORT=${PORT:-4567}
     ports:
       - '${PORT:-4567}:${PORT:-4567}'
     volumes:
