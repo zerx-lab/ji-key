@@ -59,9 +59,13 @@ RUN mkdir .next && chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# 复制 @libsql 原生模块（standalone 模式不会自动打包 .node 文件）
-# alpine 使用 musl libc，需要 linux-x64-musl 版本
+# 复制运行时所需的原生模块和数据库迁移依赖
+# standalone 模式不会自动打包这些模块
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@libsql ./node_modules/@libsql
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/libsql ./node_modules/libsql
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@payloadcms/drizzle ./node_modules/@payloadcms/drizzle
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@payloadcms/db-sqlite ./node_modules/@payloadcms/db-sqlite
 
 USER nextjs
 

@@ -32,6 +32,8 @@ export default buildConfig({
       // 构建阶段：fallback 到 /tmp 避免找不到文件报错
       url: process.env.DATABASE_URL || 'file:/tmp/build.db',
     },
+    // 启动时自动同步 schema（等价于 drizzle push），新部署无需手动迁移
+    push: true,
   }),
   sharp,
   plugins: [],
