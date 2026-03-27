@@ -1,164 +1,247 @@
-:root {
-  --font-mono: 'Roboto Mono', monospace;
+@import 'tailwindcss';
+
+@theme {
+  /* ── 色彩系统（浅色，参照 TypeLit） ── */
+  --color-bg: #eef1f0;
+  --color-surface: #ffffff;
+  --color-surface-2: #f4f6f5;
+  --color-surface-dark: #1a1a1a;
+  --color-border: #dde1e0;
+  --color-border-hover: #bcc3c1;
+
+  /* 文字 */
+  --color-text: #1a1a1a;
+  --color-text-dim: #555f5d;
+  --color-text-muted: #8a9694;
+
+  /* 强调色 */
+  --color-accent: #2d6a4f;
+  --color-accent-hover: #1b4332;
+  --color-accent-light: #d8f3dc;
+
+  /* 打字状态 */
+  --color-correct: #1a1a1a;
+  --color-error: #c0392b;
+  --color-error-bg: #fdecea;
+  --color-pending: #b0bab8;
+  --color-cursor: #2d6a4f;
+
+  /* ── 字体 ── */
+  /* 正文阅读字体：serif，参照 TypeLit 的 Literata */
+  --font-reading: 'Lora', 'Georgia', 'Times New Roman', serif;
+  /* UI 字体 */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  /* 等宽（统计数字） */
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+
+  /* ── 间距基准（Tailwind v4 默认 --spacing = 0.25rem） ── */
+
+  /* ── 圆角 ── */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  /* ── 动画 ── */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-* {
-  box-sizing: border-box;
-}
+/* ────────────────────────────────────────────
+   基础层：放入 @layer base 避免覆盖 utilities
+──────────────────────────────────────────── */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
 
-html {
-  font-size: 18px;
-  line-height: 32px;
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
 
-  background: rgb(0, 0, 0);
-  -webkit-font-smoothing: antialiased;
-}
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    min-height: 100dvh;
+    line-height: 1.6;
+  }
 
-html,
-body,
-#app {
-  height: 100%;
-}
+  /* 滚动条 */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-border-hover);
+  }
 
-body {
-  font-family: system-ui;
-  font-size: 18px;
-  line-height: 32px;
+  /* 选中 */
+  ::selection {
+    background: var(--color-accent-light);
+    color: var(--color-accent-hover);
+  }
 
-  margin: 0;
-  color: rgb(1000, 1000, 1000);
+  /* 链接 */
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 
-  @media (max-width: 1024px) {
-    font-size: 15px;
-    line-height: 24px;
+  /* 聚焦轮廓 */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  img,
+  svg {
+    display: block;
+    max-width: 100%;
+  }
+
+  button {
+    cursor: pointer;
+    font-family: inherit;
+    border: none;
+    background: none;
+  }
+
+  input,
+  textarea,
+  select {
+    font-family: inherit;
+    font-size: inherit;
   }
 }
 
-img {
-  max-width: 100%;
-  height: auto;
-  display: block;
+/* ────────────────────────────────────────────
+   @utility：打字练习专用工具类（Tailwind v4 写法）
+──────────────────────────────────────────── */
+
+/* 打字文本容器：serif 阅读字体，宽松行高 */
+@utility typing-text {
+  font-family: var(--font-reading);
+  font-size: 1.125rem; /* 18px */
+  line-height: 1.85;
+  letter-spacing: 0.01em;
+  word-break: break-word;
+  user-select: none;
+  -webkit-user-select: none;
+  position: relative;
 }
 
-h1 {
-  margin: 40px 0;
-  font-size: 64px;
-  line-height: 70px;
-  font-weight: bold;
+/* 字符状态 */
+@utility char-pending {
+  color: var(--color-pending);
+}
 
-  @media (max-width: 1024px) {
-    margin: 24px 0;
-    font-size: 42px;
-    line-height: 42px;
+@utility char-correct {
+  color: var(--color-correct);
+}
+
+@utility char-error {
+  color: var(--color-error);
+  background-color: var(--color-error-bg);
+  border-radius: 2px;
+}
+
+@utility char-extra {
+  color: var(--color-error);
+  text-decoration: underline;
+  text-decoration-color: var(--color-error);
+  text-underline-offset: 2px;
+}
+
+/* 光标 */
+@utility typing-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  background-color: var(--color-cursor);
+  border-radius: 1px;
+  vertical-align: text-bottom;
+  animation: cursor-blink 1.1s ease-in-out infinite;
+  margin-right: -2px;
+  pointer-events: none;
+  position: relative;
+  top: 1px;
+}
+
+/* 打字时光标不闪烁 */
+@utility typing-cursor-active {
+  animation: none;
+  opacity: 1;
+}
+
+/* 动画工具 */
+@utility fade-in {
+  animation: fade-in 0.18s var(--ease-smooth) both;
+}
+
+@utility slide-up {
+  animation: slide-up 0.25s var(--ease-smooth) both;
+}
+
+@utility fade-in-up {
+  animation: fade-in-up 0.3s var(--ease-smooth) both;
+}
+
+/* ────────────────────────────────────────────
+   关键帧
+──────────────────────────────────────────── */
+
+@keyframes cursor-blink {
+  0%,
+  55% {
+    opacity: 1;
   }
-
-  @media (max-width: 768px) {
-    font-size: 38px;
-    line-height: 38px;
-  }
-
-  @media (max-width: 400px) {
-    font-size: 32px;
-    line-height: 32px;
+  65%,
+  100% {
+    opacity: 0;
   }
 }
 
-p {
-  margin: 24px 0;
-
-  @media (max-width: 1024px) {
-    margin: calc(var(--base) * 0.75) 0;
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
-a {
-  color: currentColor;
-
-  &:focus {
-    opacity: 0.8;
-    outline: none;
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
   }
-
-  &:active {
-    opacity: 0.7;
-    outline: none;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-svg {
-  vertical-align: middle;
-}
-
-.home {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  height: 100vh;
-  padding: 45px;
-  max-width: 1024px;
-  margin: 0 auto;
-  overflow: hidden;
-
-  @media (max-width: 400px) {
-    padding: 24px;
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
   }
-
-  .content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex-grow: 1;
-
-    h1 {
-      text-align: center;
-    }
-  }
-
-  .links {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    a {
-      text-decoration: none;
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-    }
-
-    .admin {
-      color: rgb(0, 0, 0);
-      background: rgb(1000, 1000, 1000);
-      border: 1px solid rgb(0, 0, 0);
-    }
-
-    .docs {
-      color: rgb(1000, 1000, 1000);
-      background: rgb(0, 0, 0);
-      border: 1px solid rgb(1000, 1000, 1000);
-    }
-  }
-
-  .footer {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    @media (max-width: 1024px) {
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    p {
-      margin: 0;
-    }
-
-    .codeLink {
-      text-decoration: none;
-      padding: 0 0.5rem;
-      background: rgb(60, 60, 60);
-      border-radius: 4px;
-    }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

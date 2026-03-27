@@ -69,6 +69,8 @@ export interface Config {
   collections: {
     users: User;
     media: Media;
+    articles: Article;
+    'typing-sessions': TypingSession;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -78,13 +80,15 @@ export interface Config {
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    articles: ArticlesSelect<false> | ArticlesSelect<true>;
+    'typing-sessions': TypingSessionsSelect<false> | TypingSessionsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
   };
   db: {
-    defaultIDType: string;
+    defaultIDType: number;
   };
   fallbackLocale: null;
   globals: {};
@@ -122,7 +126,8 @@ export interface UserAuthOperations {
  * via the `definition` "users".
  */
 export interface User {
-  id: string;
+  id: number;
+  role: 'admin' | 'user';
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -147,7 +152,7 @@ export interface User {
  * via the `definition` "media".
  */
 export interface Media {
-  id: string;
+  id: number;
   alt: string;
   updatedAt: string;
   createdAt: string;
@@ -163,10 +168,80 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "articles".
+ */
+export interface Article {
+  id: number;
+  title: string;
+  author?: string | null;
+  language: 'zh' | 'en' | 'mixed';
+  category?: ('fiction' | 'prose' | 'poetry' | 'tech' | 'philosophy' | 'history' | 'other') | null;
+  coverImage?: (number | null) | Media;
+  description?: string | null;
+  /**
+   * 每个章节对应一段练习文本，按顺序排列
+   */
+  chapters?:
+    | {
+        chapterTitle: string;
+        /**
+         * 供打字练习的原文，建议每章 200~600 字符
+         */
+        content: string;
+        /**
+         * 数字越小越靠前
+         */
+        order?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * 勾选后出现在首页推荐区域
+   */
+  featured?: boolean | null;
+  difficulty?: ('beginner' | 'medium' | 'advanced') | null;
+  /**
+   * 保存时自动计算
+   */
+  totalChars?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "typing-sessions".
+ */
+export interface TypingSession {
+  id: number;
+  user: number | User;
+  article: number | Article;
+  /**
+   * 对应 article.chapters 数组的下标（从 0 开始）
+   */
+  chapterIndex: number;
+  /**
+   * 保存时冗余存储，防止文章被删后丢失数据
+   */
+  chapterTitle?: string | null;
+  wpm: number;
+  accuracy: number;
+  duration: number;
+  correctChars?: number | null;
+  errorChars?: number | null;
+  totalChars?: number | null;
+  /**
+   * 未完整打完整章节时为 false
+   */
+  completed?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
-  id: string;
+  id: number;
   key: string;
   data:
     | {
@@ -183,20 +258,28 @@ export interface PayloadKv {
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
-  id: string;
+  id: number;
   document?:
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null)
     | ({
         relationTo: 'media';
-        value: string | Media;
+        value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'articles';
+        value: number | Article;
+      } | null)
+    | ({
+        relationTo: 'typing-sessions';
+        value: number | TypingSession;
       } | null);
   globalSlug?: string | null;
   user: {
     relationTo: 'users';
-    value: string | User;
+    value: number | User;
   };
   updatedAt: string;
   createdAt: string;
@@ -206,10 +289,10 @@ export interface PayloadLockedDocument {
  * via the `definition` "payload-preferences".
  */
 export interface PayloadPreference {
-  id: string;
+  id: number;
   user: {
     relationTo: 'users';
-    value: string | User;
+    value: number | User;
   };
   key?: string | null;
   value?:
@@ -229,7 +312,7 @@ export interface PayloadPreference {
  * via the `definition` "payload-migrations".
  */
 export interface PayloadMigration {
-  id: string;
+  id: number;
   name?: string | null;
   batch?: number | null;
   updatedAt: string;
@@ -240,6 +323,7 @@ export interface PayloadMigration {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  role?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -274,6 +358,50 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "articles_select".
+ */
+export interface ArticlesSelect<T extends boolean = true> {
+  title?: T;
+  author?: T;
+  language?: T;
+  category?: T;
+  coverImage?: T;
+  description?: T;
+  chapters?:
+    | T
+    | {
+        chapterTitle?: T;
+        content?: T;
+        order?: T;
+        id?: T;
+      };
+  featured?: T;
+  difficulty?: T;
+  totalChars?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "typing-sessions_select".
+ */
+export interface TypingSessionsSelect<T extends boolean = true> {
+  user?: T;
+  article?: T;
+  chapterIndex?: T;
+  chapterTitle?: T;
+  wpm?: T;
+  accuracy?: T;
+  duration?: T;
+  correctChars?: T;
+  errorChars?: T;
+  totalChars?: T;
+  completed?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

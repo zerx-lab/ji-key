@@ -1,67 +1,151 @@
-# Payload Blank Template
+# Ji-Key
 
-This template comes configured with the bare minimum to get started on anything you need.
+多用户在线打字练习 Web 应用。未登录用户可直接开始练习，登录后解锁成绩记录与统计看板。
 
-## Quick start
+**技术栈**：Payload CMS 3.x · Next.js 16 · React 19 · TypeScript 5.7 · SQLite · Tailwind CSS v4
 
-This template can be deployed directly from our Cloud hosting and it will setup MongoDB and cloud S3 object storage for media.
+---
 
-## Quick Start - local setup
+## 功能概览
 
-To spin up this template locally, follow these steps:
+- **免登录练习** — 任何人可直接访问首页开始打字，成绩本地暂存
+- **用户账号** — 注册/登录后，每次练习自动记录 WPM、准确率、时长
+- **统计看板** — 可视化历史成绩，追踪进步曲线（登录后可见）
+- **文章库** — 管理员在后台维护中英文练习文章，支持手动录入
+- **管理后台** — 基于 Payload Admin，仅管理员账号可访问（`/admin`）
 
-### Clone
+---
 
-After you click the `Deploy` button above, you'll want to have standalone copy of this repo on your machine. If you've already cloned this repo, skip to [Development](#development).
+## 快速开始
 
-### Development
+**环境要求**：Node ≥ 18.20.2 或 ≥ 20.9.0，pnpm ^9 或 ^10
 
-1. First [clone the repo](#clone) if you have not done so already
-2. `cd my-project && cp .env.example .env` to copy the example environment variables. You'll need to add the `MONGODB_URL` from your Cloud project to your `.env` if you want to use S3 storage and the MongoDB database that was created for you.
+```bash
+# 1. 克隆项目
+git clone <repo-url>
+cd ji-key
 
-3. `pnpm install && pnpm dev` to install dependencies and start the dev server
-4. open `http://localhost:3000` to open the app in your browser
+# 2. 配置环境变量
+cp .env.example .env
+# 编辑 .env，填写 PAYLOAD_SECRET 和 DATABASE_URL
 
-That's it! Changes made in `./src` will be reflected in your app. Follow the on-screen instructions to login and create your first admin user. Then check out [Production](#production) once you're ready to build and serve your app, and [Deployment](#deployment) when you're ready to go live.
+# 3. 安装依赖
+pnpm install
 
-#### Docker (Optional)
+# 4. 启动开发服务器
+pnpm dev
+```
 
-If you prefer to use Docker for local development instead of a local MongoDB instance, the provided docker-compose.yml file can be used.
+访问 `http://localhost:3000` 查看前台，`http://localhost:3000/admin` 进入后台。
 
-To do so, follow these steps:
+首次启动后台时，按照引导创建管理员账号。
 
-- Modify the `MONGODB_URL` in your `.env` file to `mongodb://127.0.0.1/<dbname>`
-- Modify the `docker-compose.yml` file's `MONGODB_URL` to match the above `<dbname>`
-- Run `docker-compose up` to start the database, optionally pass `-d` to run in the background.
+### 环境变量
 
-## How it works
+| 变量名           | 说明                                 | 示例               |
+| ---------------- | ------------------------------------ | ------------------ |
+| `PAYLOAD_SECRET` | JWT 签名密钥（至少 32 位随机字符串） | `your-secret-key`  |
+| `DATABASE_URL`   | SQLite 文件路径                      | `file:./ji-key.db` |
 
-The Payload config is tailored specifically to the needs of most websites. It is pre-configured in the following ways:
+---
 
-### Collections
+## 开发命令
 
-See the [Collections](https://payloadcms.com/docs/configuration/collections) docs for details on how to extend this functionality.
+```bash
+pnpm dev                   # 启动开发服务器（localhost:3000）
+pnpm devsafe               # 清除 .next 缓存后启动
+pnpm build                 # 生产构建
+pnpm lint                  # ESLint 检查
+tsc --noEmit               # TypeScript 类型检查
+pnpm generate:types        # 修改 Collection/Global schema 后执行
+pnpm generate:importmap    # 新增或修改 admin 组件后执行
+```
 
-- #### Users (Authentication)
+### 测试
 
-  Users are auth-enabled collections that have access to the admin panel.
+```bash
+pnpm test          # 运行全部测试（集成 + E2E）
+pnpm test:int      # 仅 Vitest 集成测试
+pnpm test:e2e      # 仅 Playwright E2E 测试（需本地先运行 pnpm dev）
+```
 
-  For additional help, see the official [Auth Example](https://github.com/payloadcms/payload/tree/main/examples/auth) or the [Authentication](https://payloadcms.com/docs/authentication/overview#authentication-overview) docs.
+E2E 测试使用 Chromium，需要本地开发服务器运行在 `http://localhost:3000`。
 
-- #### Media
+### Docker（可选）
 
-  This is the uploads enabled collection. It features pre-configured sizes, focal point and manual resizing to help you manage your pictures.
+```bash
+docker-compose up          # 启动容器
+docker-compose up -d       # 后台运行
+```
 
-### Docker
+---
 
-Alternatively, you can use [Docker](https://www.docker.com) to spin up this template locally. To do so, follow these steps:
+## 项目结构
 
-1. Follow [steps 1 and 2 from above](#development), the docker-compose file will automatically use the `.env` file in your project root
-1. Next run `docker-compose up`
-1. Follow [steps 4 and 5 from above](#development) to login and create your first admin user
+```
+src/
+├── app/
+│   ├── (frontend)/        # 前台页面（打字练习、统计、用户页）
+│   └── (payload)/         # Payload Admin 路由（自动生成，勿手动修改）
+├── collections/           # Payload Collection 配置
+├── globals/               # Payload Global 配置
+├── components/
+│   ├── ui/                # 通用 UI 原子组件（Button / Input / Navbar）
+│   └── typing/            # 打字相关业务组件
+├── hooks/                 # Payload Hook 函数
+├── access/                # 访问控制函数
+└── payload.config.ts      # 主配置（数据库 / 集合 / 编辑器）
+```
 
-That's it! The Docker instance will help you get up and running quickly while also standardizing the development environment across your teams.
+路径别名：`@/` → `src/`，`@payload-config` → `src/payload.config.ts`
 
-## Questions
+---
 
-If you have any issues or questions, reach out to us on [Discord](https://discord.com/invite/payload) or start a [GitHub discussion](https://github.com/payloadcms/payload/discussions).
+## 数据模型
+
+| Collection        | 说明                                    |
+| ----------------- | --------------------------------------- |
+| `users`           | 用户认证（角色：`admin` / `user`）      |
+| `articles`        | 练习文章库（中英文，支持富文本）        |
+| `typing-sessions` | 练习记录（WPM、准确率、时长、关联文章） |
+| `media`           | 媒体文件上传                            |
+
+---
+
+## 设计规范
+
+- **主题**：深色（背景 `#0d0d0d`，表面 `#161616`，强调色金黄 `#e2b714`）
+- **字体**：打字区域使用 `JetBrains Mono` 等宽字体，UI 使用 `Inter`
+- **禁止渐变**：所有颜色（背景/边框/文字）均不使用 CSS gradient
+- **无障碍**：所有交互组件支持键盘操作与 focus-visible 样式
+
+---
+
+## 开发规范
+
+代码风格：单引号、无分号、尾随逗号、最大行宽 100。
+
+详细规范见：
+
+- [`AGENTS.md`](./AGENTS.md) — 完整开发规范（命名、安全、架构）
+- [`.cursor/rules/`](./.cursor/rules/) — 各模块专项规范（13 个文档）
+
+**安全关键原则（必须遵守）：**
+
+```typescript
+// Local API 必须显式传递 overrideAccess: false
+await payload.find({ collection: 'typing-records', user, overrideAccess: false })
+
+// Hook 中始终传递 req，保证事务原子性
+await req.payload.create({ collection: 'audit-log', data, req })
+
+// 用 context 标志防止 Hook 无限循环
+if (context.skipHooks) return
+await req.payload.update({ ..., context: { skipHooks: true }, req })
+```
+
+---
+
+## 许可证
+
+MIT
