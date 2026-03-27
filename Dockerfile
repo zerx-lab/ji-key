@@ -6,8 +6,7 @@ FROM oven/bun:1-alpine AS base
 # ── 安装阶段 ──────────────────────────────────────────────
 FROM base AS deps
 # libc6-compat: alpine 兼容性
-# python3 make g++: better-sqlite3 原生模块编译所需
-RUN apk add --no-cache libc6-compat python3 make g++
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 COPY package.json bun.lock ./
@@ -15,7 +14,6 @@ RUN bun install --frozen-lockfile
 
 # ── 构建阶段 ──────────────────────────────────────────────
 FROM base AS builder
-RUN apk add --no-cache python3 make g++
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -31,8 +29,10 @@ ENV DATABASE_URL=file:/tmp/build.db
 ENV PAYLOAD_SECRET=${PAYLOAD_SECRET:-build-time-secret-placeholder}
 ENV PORT=${PORT}
 ENV NEXT_TELEMETRY_DISABLED=1
+# 降低内存上限，适应生产服务器
+ENV NODE_OPTIONS="--no-deprecation --max-old-space-size=4096"
 
-RUN bun run build
+RUN ./node_modules/.bin/next build 2>&1
 
 # ── 运行阶段 ──────────────────────────────────────────────
 FROM node:22-alpine AS runner
@@ -54,10 +54,9 @@ RUN mkdir .next && chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# 复制 better-sqlite3 原生模块（standalone 模式不会自动打包 .node 文件）
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/bindings ./node_modules/bindings
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/file-uri-to-path ./node_modules/file-uri-to-path
+# 复制 @libsql 原生模块（standalone 模式不会自动打包 .node 文件）
+# alpine 使用 musl libc，需要 linux-x64-musl 版本
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@libsql ./node_modules/@libsql
 
 USER nextjs
 
