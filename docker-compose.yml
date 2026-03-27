@@ -2,7 +2,7 @@ services:
   app:
     build: .
     ports:
-      - '3000:3000'
+      - '${PORT:-4567}:${PORT:-4567}'
     volumes:
       # SQLite 数据库文件持久化
       - sqlite_data:/app/data
@@ -10,11 +10,12 @@ services:
       - media_data:/app/public/media
     environment:
       - NODE_ENV=production
+      - PORT=${PORT:-4567}
       - DATABASE_URL=file:/app/data/ji-key.db
       - PAYLOAD_SECRET=${PAYLOAD_SECRET}
     restart: unless-stopped
     healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/api/health']
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:${PORT:-4567}/api/health']
       interval: 30s
       timeout: 10s
       retries: 3
