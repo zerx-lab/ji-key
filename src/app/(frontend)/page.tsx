@@ -15,7 +15,7 @@ export default async function HomePage() {
   return (
     <div className="flex flex-col">
       {/* ── Hero ── */}
-      <section className="mx-auto w-full max-w-4xl px-6 pt-20 pb-16 flex flex-col items-center text-center gap-6">
+      <section className="mx-auto w-full max-w-4xl px-6 pt-12 sm:pt-20 pb-10 sm:pb-16 flex flex-col items-center text-center gap-6">
         <div
           className={cn(
             'inline-flex items-center gap-2 px-3 py-1 rounded-full',
@@ -42,7 +42,7 @@ export default async function HomePage() {
           从经典书目中选取章节，逐字打出每一个词句。 实时 WPM 统计，逐字高亮纠错，让练习有迹可循。
         </p>
 
-        <div className="flex items-center gap-3 mt-2">
+        <div className="flex flex-wrap items-center gap-3 mt-2">
           <Link
             href="/books"
             className={cn(
@@ -77,16 +77,16 @@ export default async function HomePage() {
         <div
           className={cn(
             'rounded-[var(--radius-lg)] border border-[var(--color-border)]',
-            'bg-[var(--color-surface)] px-8 py-7',
+            'bg-[var(--color-surface)] px-4 sm:px-8 py-5 sm:py-7',
           )}
         >
           {/* 顶部模拟统计栏 */}
-          <div className="flex items-center gap-8 mb-5 pb-4 border-b border-[var(--color-border)]">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-8 mb-3 sm:mb-5 pb-4 border-b border-[var(--color-border)]">
             <MockStat label="WPM" value="68" accent />
             <MockStat label="准确率" value="97%" />
             <MockStat label="用时" value="1:24" />
             <div className="ml-auto">
-              <div className="h-1 w-32 bg-[var(--color-border)] rounded-full overflow-hidden">
+              <div className="h-1 w-20 sm:w-32 bg-[var(--color-border)] rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full bg-[var(--color-accent)]"
                   style={{ width: '42%' }}
@@ -172,7 +172,10 @@ export default async function HomePage() {
 
       {/* ── CTA ── */}
       <section
-        className={cn('border-t border-[var(--color-border)] bg-[var(--color-surface)]', 'py-14')}
+        className={cn(
+          'border-t border-[var(--color-border)] bg-[var(--color-surface)]',
+          'py-10 sm:py-14',
+        )}
       >
         <div className="mx-auto max-w-xl px-6 flex flex-col items-center gap-4 text-center">
           <h2 className="text-xl font-bold text-[var(--color-text)] tracking-tight">

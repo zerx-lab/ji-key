@@ -71,7 +71,7 @@ export default async function BooksPage() {
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-10 flex flex-col gap-8">
       {/* ── 页头 ── */}
-      <div className="flex items-center justify-between fade-in-up">
+      <div className="flex flex-wrap items-start justify-between gap-4 fade-in-up">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <BookOpen size={20} className="text-[var(--color-accent)]" />

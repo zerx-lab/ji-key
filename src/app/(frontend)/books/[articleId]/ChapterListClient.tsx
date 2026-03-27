@@ -31,9 +31,7 @@ export function ChapterListClient({ articleId, chapters, isLoggedIn }: ChapterLi
     const q = query.trim().toLowerCase()
     if (!q) return chapters
     return chapters.filter(
-      (c) =>
-        c.title.toLowerCase().includes(q) ||
-        String(c.index + 1).includes(q),
+      (c) => c.title.toLowerCase().includes(q) || String(c.index + 1).includes(q),
     )
   }, [query, chapters])
 
@@ -68,7 +66,7 @@ export function ChapterListClient({ articleId, chapters, isLoggedIn }: ChapterLi
   return (
     <div className="flex flex-col gap-3 fade-in-up">
       {/* ── 标题行 ── */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <span className="w-1 h-4 rounded-full bg-[var(--color-accent)]" aria-hidden />
           <h2 className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider select-none">
@@ -83,9 +81,9 @@ export function ChapterListClient({ articleId, chapters, isLoggedIn }: ChapterLi
         </div>
 
         {/* 右侧：搜索框 + 跳转框 */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {/* 关键词搜索 */}
-          <div className="relative">
+          <div className="relative flex-1 min-w-[140px] sm:flex-none">
             <Search
               size={12}
               className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] pointer-events-none"
@@ -100,7 +98,7 @@ export function ChapterListClient({ articleId, chapters, isLoggedIn }: ChapterLi
                 'border border-[var(--color-border)] bg-[var(--color-surface)]',
                 'text-[var(--color-text-dim)] placeholder:text-[var(--color-text-muted)]',
                 'focus:outline-none focus:border-[var(--color-accent)]',
-                'transition-colors duration-150 w-36',
+                'transition-colors duration-150 w-full sm:w-36',
               )}
             />
           </div>
@@ -127,7 +125,7 @@ export function ChapterListClient({ articleId, chapters, isLoggedIn }: ChapterLi
                   'pl-6 pr-2 py-1.5 text-xs rounded-[var(--radius-md)]',
                   'border bg-[var(--color-surface)]',
                   'text-[var(--color-text-dim)] placeholder:text-[var(--color-text-muted)]',
-                  'focus:outline-none transition-colors duration-150 w-24',
+                  'focus:outline-none transition-colors duration-150 w-20 sm:w-24',
                   '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none',
                   jumpError
                     ? 'border-[var(--color-error)] text-[var(--color-error)]'
@@ -243,10 +241,7 @@ export function ChapterListClient({ articleId, chapters, isLoggedIn }: ChapterLi
                   )}
                   {/* 已完成标记（仅登录用户） */}
                   {chapter.completed && isLoggedIn && (
-                    <CheckCircle2
-                      size={14}
-                      className="text-[var(--color-accent)] opacity-70"
-                    />
+                    <CheckCircle2 size={14} className="text-[var(--color-accent)] opacity-70" />
                   )}
                   {/* 箭头 */}
                   <ChevronRight

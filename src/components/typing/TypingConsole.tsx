@@ -20,26 +20,25 @@ import { cn } from '@/lib/utils'
    跨行，Enter 在打字逻辑中匹配 \n 字符。
 ──────────────────────────────────────────── */
 const LINE_HEIGHT_EM = 1.85
-const FONT_SIZE_PX = 18 // typing-text font-size: 1.125rem = 18px
-const LINE_HEIGHT_PX = LINE_HEIGHT_EM * FONT_SIZE_PX // ~33.3px
+// 桌面端 18px（1.125rem），移动端 16px（1rem）
+const FONT_SIZE_PX_DESKTOP = 18
+const FONT_SIZE_PX_MOBILE = 16
+const LINE_HEIGHT_PX_DESKTOP = LINE_HEIGHT_EM * FONT_SIZE_PX_DESKTOP // ~33.3px
+const LINE_HEIGHT_PX_MOBILE = LINE_HEIGHT_EM * FONT_SIZE_PX_MOBILE // ~29.6px
 
-// Lora 字体实测：中文字符约 21.6px，英文/数字约 0.6em
-const CJK_CHAR_WIDTH_PX = 21.6 // Lora 字体中文实测值
-const ASCII_CHAR_WIDTH_PX = FONT_SIZE_PX * 0.6 // 英文/数字/标点约 0.6em
-
-/** 估算单个字符的像素宽度（中文 vs ASCII） */
-function charWidthPx(ch: string): number {
+/** 估算单个字符的像素宽度（中文 vs ASCII），支持动态字号 */
+function charWidthPx(ch: string, fontSize: number): number {
   const code = ch.charCodeAt(0)
-  // CJK 统一表意文字、全角标点等
+  // CJK 统一表意文字、全角标点等：约 1.2em 宽
   if (
     (code >= 0x4e00 && code <= 0x9fff) || // CJK 基本区
     (code >= 0x3000 && code <= 0x303f) || // CJK 标点
     (code >= 0xff00 && code <= 0xffef) || // 全角
     (code >= 0x2e80 && code <= 0x2eff) // CJK 部首
   ) {
-    return CJK_CHAR_WIDTH_PX
+    return fontSize * 1.2
   }
-  return ASCII_CHAR_WIDTH_PX
+  return fontSize * 0.6 // 英文/数字/标点约 0.6em
 }
 
 /**
@@ -47,7 +46,11 @@ function charWidthPx(ch: string): number {
  * containerWidth: 容器可用宽度（px），默认 600px。
  * 行间插入 \n，打字时 Enter 匹配 \n。
  */
-function splitIntoLines(text: string, containerWidth = 600): string {
+function splitIntoLines(
+  text: string,
+  containerWidth = 600,
+  fontSize = FONT_SIZE_PX_DESKTOP,
+): string {
   const lines: string[] = []
   let remaining = text
 
@@ -59,7 +62,7 @@ function splitIntoLines(text: string, containerWidth = 600): string {
 
     for (let i = 0; i < remaining.length; i++) {
       const ch = remaining[i]
-      width += charWidthPx(ch)
+      width += charWidthPx(ch, fontSize)
       if (ch === ' ') lastSpaceAt = i
       if (width > containerWidth) {
         // 超宽：优先在上一个空格处断，否则强制断
@@ -185,9 +188,12 @@ export function TypingConsole({
 
   // ── 把 normalizedContent 按行分组（行间用 \n） ──
   // lineContent 是含 \n 的字符串，用户打字时 Enter 匹配 \n
+  // fontSizePx 由 measure 中动态检测并通过 containerWidth 变化触发重新计算
+  const [fontSizePx, setFontSizePx] = useState(FONT_SIZE_PX_DESKTOP)
+
   const lineContent = useMemo(
-    () => splitIntoLines(normalizedContent, containerWidth),
-    [normalizedContent, containerWidth],
+    () => splitIntoLines(normalizedContent, containerWidth, fontSizePx),
+    [normalizedContent, containerWidth, fontSizePx],
   )
   const lines = useMemo(() => lineContent.split('\n'), [lineContent])
 
@@ -459,15 +465,22 @@ export function TypingConsole({
     if (!el) return
     const measure = () => {
       const colH = el.clientHeight
-      // 减去：章节标题区约 68px + 操作栏约 24px + py-8 padding 64px
-      const available = colH - 68 - 24 - 64
-      const lines = Math.max(3, Math.floor(available / LINE_HEIGHT_PX))
+      // 移动端：章节标题区约 56px + 操作栏约 20px + py-4 padding 32px
+      // 桌面端：章节标题区约 68px + 操作栏约 24px + py-8 padding 64px
+      const isMobile = window.innerWidth < 640
+      const currentFontSize = isMobile ? FONT_SIZE_PX_MOBILE : FONT_SIZE_PX_DESKTOP
+      setFontSizePx(currentFontSize)
+      const reserved = isMobile ? 56 + 20 + 32 : 68 + 24 + 64
+      const available = colH - reserved
+      const lhPx = isMobile ? LINE_HEIGHT_PX_MOBILE : LINE_HEIGHT_PX_DESKTOP
+      const lines = Math.max(3, Math.floor(available / lhPx))
       setDisplayLines(lines)
 
-      // 文字容器宽度 = 中央列宽度，减去左右 padding（px-6 = 24px * 2，lg 以上无 padding）
+      // 文字容器宽度 = 中央列宽度，减去左右 padding（px-4 移动端 = 16px * 2，px-6 桌面端 = 24px * 2）
       const colW = el.clientWidth
+      const padding = isMobile ? 32 : 48
       // max-w-[640px] 限制，留 40px 安全余量避免中文字符估算误差导致溢出
-      const textW = Math.min(colW - 48, 600)
+      const textW = Math.min(colW - padding, 600)
       setContainerWidth(Math.max(200, textW))
     }
     measure()
@@ -477,35 +490,35 @@ export function TypingConsole({
   }, [])
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full w-full min-w-0">
       {/* ══════════════════════════════
           顶部面包屑 + 实时统计栏
       ══════════════════════════════ */}
       <div className="sticky top-14 z-40 w-full bg-[var(--color-surface)] border-b border-[var(--color-border)]">
-        <div className="mx-auto max-w-5xl px-6 h-9 flex items-center justify-between gap-4">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 h-9 flex items-center justify-between gap-2 sm:gap-4">
           {/* 面包屑 */}
-          <nav className="flex items-center gap-1.5 text-xs min-w-0">
+          <nav className="flex items-center gap-1 sm:gap-1.5 text-xs min-w-0">
             <Link
               href="/books"
-              className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors duration-150 shrink-0"
+              className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors duration-150 shrink-0 hidden sm:inline"
             >
               书库
             </Link>
-            <span className="text-[var(--color-border-hover)] shrink-0">/</span>
+            <span className="text-[var(--color-border-hover)] shrink-0 hidden sm:inline">/</span>
             <Link
               href={`/books/${articleId}`}
-              className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors duration-150 truncate max-w-[120px] sm:max-w-[200px]"
+              className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors duration-150 truncate max-w-[80px] sm:max-w-[160px]"
             >
               {articleTitle}
             </Link>
             <span className="text-[var(--color-border-hover)] shrink-0">/</span>
-            <span className="truncate max-w-[120px] sm:max-w-[200px] text-[var(--color-text-dim)]">
+            <span className="truncate max-w-[80px] sm:max-w-[160px] text-[var(--color-text-dim)]">
               {chapterTitle}
             </span>
           </nav>
 
           {/* 实时统计 */}
-          <div className="flex items-center gap-5 shrink-0">
+          <div className="flex items-center gap-3 sm:gap-5 shrink-0">
             <TopBarStat label="WPM" value={started ? String(stats.wpm) : '--'} accent />
             <TopBarStat label="准确率" value={started ? `${stats.accuracy}%` : '--'} />
             <TopBarStat
@@ -525,14 +538,70 @@ export function TypingConsole({
                 {Math.round(progress)}%
               </span>
             </div>
+            {/* 移动端章节列表按钮 */}
+            <button
+              type="button"
+              onClick={() => setShowChapterList((v) => !v)}
+              className={cn(
+                'lg:hidden flex items-center justify-center w-7 h-7 rounded-[var(--radius-md)]',
+                'text-[var(--color-text-muted)] border border-[var(--color-border)] bg-[var(--color-surface)]',
+                'hover:text-[var(--color-text-dim)] hover:bg-[var(--color-surface-2)]',
+                'transition-all duration-150',
+                showChapterList &&
+                  'text-[var(--color-accent)] border-[var(--color-accent)]/40 bg-[var(--color-accent-light)]',
+              )}
+              aria-label="章节列表"
+            >
+              <List size={13} />
+            </button>
           </div>
         </div>
+
+        {/* 移动端章节列表下拉（<lg 时显示） */}
+        {showChapterList && (
+          <div className="lg:hidden border-t border-[var(--color-border)] bg-[var(--color-surface)] fade-in">
+            <div className="mx-auto max-w-5xl px-4 py-2">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-[var(--color-text-dim)] select-none">
+                  {totalChapters} 个章节
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowChapterList(false)}
+                  className="text-[var(--color-text-muted)] hover:text-[var(--color-text-dim)] p-1"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+              <div className="flex flex-col max-h-[40vh] overflow-y-auto rounded-[var(--radius-md)] border border-[var(--color-border)]">
+                {allChapters.map((ch) => (
+                  <Link
+                    key={ch.index}
+                    href={`/practice/${articleId}/${ch.index}`}
+                    onClick={() => setShowChapterList(false)}
+                    className={cn(
+                      'flex items-center gap-2 px-3 py-2 text-xs transition-colors duration-100',
+                      ch.index === chapterIndex
+                        ? 'text-[var(--color-accent)] bg-[var(--color-accent-light)] font-medium'
+                        : 'text-[var(--color-text-dim)] hover:bg-[var(--color-surface-2)]',
+                    )}
+                  >
+                    <span className="text-[var(--color-text-muted)] w-5 shrink-0 tabular-nums text-right">
+                      {ch.index + 1}.
+                    </span>
+                    <span className="truncate">{ch.title}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ══════════════════════════════
           主体：两列布局（空白 + 文本）
       ══════════════════════════════ */}
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex min-h-0 w-full min-w-0">
         {/* 左侧空白区域（章节列表抽屉触发区） */}
         <div className="hidden lg:flex flex-col items-end pt-12 pr-10 w-64 xl:w-80 shrink-0">
           <button
@@ -556,6 +625,7 @@ export function TypingConsole({
                 'mt-2 w-52 rounded-[var(--radius-lg)] border border-[var(--color-border)]',
                 'bg-[var(--color-surface)] shadow-lg shadow-black/5',
                 'py-1 overflow-y-auto max-h-[60vh] fade-in',
+                'relative z-20',
               )}
             >
               <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-border)]">
@@ -595,14 +665,14 @@ export function TypingConsole({
         {/* 中央文本区域 */}
         <div
           ref={centerColRef}
-          className="flex-1 flex flex-col items-center justify-center px-6 lg:px-0 py-8 min-h-0"
+          className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-0 py-4 sm:py-8 min-h-0"
         >
           {/* 章节标题 */}
-          <div className="w-full max-w-[640px] pb-5">
-            <p className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider select-none mb-1">
+          <div className="w-full max-w-[640px] pb-3 sm:pb-5">
+            <p className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider select-none mb-0.5 sm:mb-1">
               第 {chapterIndex + 1} 章 / 共 {totalChapters} 章
             </p>
-            <h2 className="text-lg font-semibold text-[var(--color-text)] tracking-tight">
+            <h2 className="text-base sm:text-lg font-semibold text-[var(--color-text)] tracking-tight line-clamp-1">
               {chapterTitle}
             </h2>
           </div>
@@ -629,8 +699,9 @@ export function TypingConsole({
                   'bg-[var(--color-bg)]/60 backdrop-blur-[3px]',
                 )}
               >
-                <p className="text-sm text-[var(--color-text-dim)] bg-[var(--color-surface)] px-4 py-2 rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-sm select-none">
-                  点击此处，或直接开始打字
+                <p className="text-sm text-[var(--color-text-dim)] bg-[var(--color-surface)] px-4 py-2 rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-sm select-none text-center w-max max-w-full">
+                  <span className="sm:hidden">点击此处开始打字</span>
+                  <span className="hidden sm:inline">点击此处，或直接开始打字</span>
                 </p>
               </div>
             )}
@@ -741,25 +812,25 @@ export function TypingConsole({
             {finished && (
               <div
                 className={cn(
-                  'absolute inset-0 z-10 flex flex-col items-center justify-center gap-4',
+                  'absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 sm:gap-4',
                   'rounded-[var(--radius-lg)]',
                   'bg-[var(--color-bg)]/90 backdrop-blur-[4px]',
-                  'fade-in',
+                  'fade-in px-4 overflow-hidden',
                 )}
               >
-                <CheckCircle2 size={36} className="text-[var(--color-accent)]" />
+                <CheckCircle2 size={30} className="text-[var(--color-accent)] sm:w-9 sm:h-9" />
                 <div className="flex flex-col items-center gap-1">
-                  <p className="text-3xl font-bold font-mono tabular-nums text-[var(--color-accent)]">
+                  <p className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-[var(--color-accent)]">
                     {stats.wpm}
-                    <span className="text-base font-normal text-[var(--color-text-muted)] ml-1.5">
+                    <span className="text-sm sm:text-base font-normal text-[var(--color-text-muted)] ml-1.5">
                       WPM
                     </span>
                   </p>
-                  <p className="text-sm text-[var(--color-text-dim)]">
+                  <p className="text-xs sm:text-sm text-[var(--color-text-dim)]">
                     准确率 {stats.accuracy}% · {formatTime(elapsed)}
                   </p>
                   {user && (
-                    <p className="text-xs">
+                    <p className="text-xs mt-0.5">
                       {saving && <span className="text-[var(--color-text-muted)]">保存中…</span>}
                       {!saving && !saveError && (
                         <span className="text-[var(--color-accent)]">✓ 已记录</span>
@@ -772,7 +843,7 @@ export function TypingConsole({
                 </div>
 
                 {/* 完成后操作 */}
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
                   <button
                     type="button"
                     onClick={reset}
@@ -809,7 +880,7 @@ export function TypingConsole({
 
           {/* 操作提示行 */}
           {!finished && (
-            <div className="w-full max-w-[640px] flex items-center justify-between mt-4 mb-2">
+            <div className="w-full max-w-[640px] flex items-center justify-between mt-3 sm:mt-4 mb-2">
               <div className="flex items-center gap-1 text-xs text-[var(--color-text-muted)]">
                 <button
                   type="button"
@@ -819,11 +890,11 @@ export function TypingConsole({
                   <RotateCcw size={11} />
                   重置
                 </button>
-                <span className="mx-1.5 opacity-30">·</span>
-                <kbd className="px-1.5 py-0.5 rounded border border-[var(--color-border)] font-mono text-[10px] bg-[var(--color-surface)]">
+                <span className="hidden sm:inline mx-1.5 opacity-30">·</span>
+                <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded border border-[var(--color-border)] font-mono text-[10px] bg-[var(--color-surface)]">
                   Tab
                 </kbd>
-                <span className="ml-1">重置</span>
+                <span className="hidden sm:inline ml-1">重置</span>
               </div>
               {started && stats.errorChars > 0 && (
                 <span className="text-xs text-[var(--color-error)] font-mono tabular-nums select-none">
@@ -860,9 +931,9 @@ export function TypingConsole({
           底部章节导航
       ══════════════════════════════ */}
       <div className="sticky bottom-0 border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 backdrop-blur-sm">
-        <div className="mx-auto max-w-[720px] px-6 h-12 flex items-center justify-between">
+        <div className="mx-auto max-w-[720px] px-4 sm:px-6 h-12 flex items-center justify-between">
           {/* 上一章 */}
-          <div className="w-24">
+          <div className="w-20 sm:w-24">
             {prevHref ? (
               <Link
                 href={prevHref}
@@ -885,20 +956,27 @@ export function TypingConsole({
                 )}
               >
                 <ChevronLeft size={14} />
-                返回首章
+                <span className="hidden sm:inline">返回首章</span>
               </Link>
             )}
           </div>
 
-          {/* 章节点 */}
-          <div className="flex items-center gap-1.5">
+          {/* 章节点（sm+ 显示点，xs 显示进度文字） */}
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            {/* xs：进度文字 */}
+            <span className="sm:hidden text-xs tabular-nums text-[var(--color-text-muted)] select-none">
+              <span className="font-medium text-[var(--color-accent)]">{chapterIndex + 1}</span>
+              <span className="mx-0.5 opacity-50">/</span>
+              {totalChapters}
+            </span>
+            {/* sm+：章节点 */}
             {allChapters.slice(0, 20).map((ch) => (
               <Link
                 key={ch.index}
                 href={`/practice/${articleId}/${ch.index}`}
                 title={ch.title}
                 className={cn(
-                  'rounded-full transition-all duration-150',
+                  'hidden sm:block rounded-full transition-all duration-150',
                   ch.index === chapterIndex
                     ? 'w-4 h-2 bg-[var(--color-accent)]'
                     : 'w-2 h-2 bg-[var(--color-border)] hover:bg-[var(--color-border-hover)]',
@@ -907,14 +985,14 @@ export function TypingConsole({
               />
             ))}
             {allChapters.length > 20 && (
-              <span className="text-[10px] text-[var(--color-text-muted)] ml-1">
+              <span className="hidden sm:inline text-[10px] text-[var(--color-text-muted)] ml-1">
                 +{allChapters.length - 20}
               </span>
             )}
           </div>
 
           {/* 下一章 */}
-          <div className="w-24 flex justify-end">
+          <div className="w-20 sm:w-24 flex justify-end">
             {nextHref ? (
               <Link
                 href={nextHref}

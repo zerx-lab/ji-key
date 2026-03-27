@@ -182,7 +182,7 @@ export default async function HistoryPage({
                 <div
                   key={s.id}
                   className={cn(
-                    'flex items-center gap-4 px-4 py-3',
+                    'flex items-center gap-3 px-4 py-3',
                     'hover:bg-[var(--color-surface-2)] transition-colors duration-100',
                     !isLast && 'border-b border-[var(--color-border)]',
                   )}
@@ -228,21 +228,18 @@ export default async function HistoryPage({
                   </div>
 
                   {/* 准确率 + 用时 */}
-                  <div className="shrink-0 flex gap-4">
-                    <div className="flex flex-col items-end gap-0.5">
+                  <div className="shrink-0 flex flex-col items-end gap-0.5 sm:flex-row sm:items-center sm:gap-4">
+                    <div className="flex items-baseline gap-1">
                       <span className="font-mono text-sm tabular-nums text-[var(--color-text-dim)]">
                         {s.accuracy}%
                       </span>
-                      <span className="text-[10px] text-[var(--color-text-muted)] select-none">
+                      <span className="text-[10px] text-[var(--color-text-muted)] select-none sm:hidden">
                         准确率
                       </span>
                     </div>
-                    <div className="flex flex-col items-end gap-0.5">
-                      <span className="font-mono text-sm tabular-nums text-[var(--color-text-dim)]">
+                    <div className="flex items-baseline gap-1">
+                      <span className="font-mono text-xs tabular-nums text-[var(--color-text-muted)]">
                         {formatDuration(s.duration)}
-                      </span>
-                      <span className="text-[10px] text-[var(--color-text-muted)] select-none">
-                        用时
                       </span>
                     </div>
                   </div>

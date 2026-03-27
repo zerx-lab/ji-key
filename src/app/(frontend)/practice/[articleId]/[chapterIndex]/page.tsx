@@ -5,6 +5,7 @@ import { getPayload } from 'payload'
 import config from '@/payload.config'
 import type { Article } from '@/payload-types'
 import { TypingConsole } from '@/components/typing/TypingConsole'
+import { MobileBlock } from '@/components/typing/MobileBlock'
 
 /**
  * 在服务端统一规范化 content：
@@ -86,15 +87,29 @@ export default async function PracticePage({ params }: Props) {
   const normalizedChapterContent = normalizeContent(chapter.content ?? '')
 
   return (
-    <TypingConsole
-      articleId={Number(articleId)}
-      articleTitle={typedArticle.title}
-      chapterIndex={idx}
-      totalChapters={totalChapters}
-      chapterTitle={chapter.chapterTitle}
-      content={normalizedChapterContent}
-      allChapters={chapters.map((c, i) => ({ index: i, title: c.chapterTitle }))}
-      user={user ? { id: user.id, email: user.email } : null}
-    />
+    <>
+      {/* 移动端拦截：sm 以下显示提示，隐藏打字区 */}
+      <div className="sm:hidden flex-1 flex flex-col">
+        <MobileBlock
+          articleId={articleId}
+          articleTitle={typedArticle.title}
+          chapterTitle={chapter.chapterTitle}
+        />
+      </div>
+
+      {/* 桌面端正常显示 */}
+      <div className="hidden sm:flex flex-1 flex-col min-h-0">
+        <TypingConsole
+          articleId={Number(articleId)}
+          articleTitle={typedArticle.title}
+          chapterIndex={idx}
+          totalChapters={totalChapters}
+          chapterTitle={chapter.chapterTitle}
+          content={normalizedChapterContent}
+          allChapters={chapters.map((c, i) => ({ index: i, title: c.chapterTitle }))}
+          user={user ? { id: user.id, email: user.email } : null}
+        />
+      </div>
+    </>
   )
 }
