@@ -1,7 +1,9 @@
 # SQLite + Next.js standalone 生产镜像
 # 依赖 next.config.ts 中 output: 'standalone'
 
-FROM oven/bun:1-alpine AS base
+# 锁定到 1.3.11-alpine（当前 Docker Hub 最新稳定 alpine tag）
+# bun.lock 文本格式需要 Bun 1.2+，1.3.11 满足要求
+FROM oven/bun:1.3.11-alpine AS base
 
 # ── 安装阶段 ──────────────────────────────────────────────
 FROM base AS deps
@@ -10,6 +12,8 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 COPY package.json bun.lock ./
+# 打印 bun 版本方便排查
+RUN bun --version
 RUN bun install --frozen-lockfile
 
 # ── 构建阶段 ──────────────────────────────────────────────
