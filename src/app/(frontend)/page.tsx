@@ -1,11 +1,17 @@
-'use client'
-
 import React from 'react'
 import Link from 'next/link'
+import { headers as getHeaders } from 'next/headers.js'
+import { getPayload } from 'payload'
+import config from '@/payload.config'
 import { BookOpen, Zap, BarChart2, ArrowRight, Crosshair } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export default function HomePage() {
+export default async function HomePage() {
+  const headers = await getHeaders()
+  const payloadConfig = await config
+  const payload = await getPayload({ config: payloadConfig })
+  const { user } = await payload.auth({ headers })
+
   return (
     <div className="flex flex-col">
       {/* ── Hero ── */}
@@ -49,18 +55,20 @@ export default function HomePage() {
             浏览书库
             <ArrowRight size={14} />
           </Link>
-          <Link
-            href="/login"
-            className={cn(
-              'flex items-center gap-2 px-5 py-2.5 rounded-[var(--radius-md)]',
-              'border border-[var(--color-border)] bg-[var(--color-surface)]',
-              'text-sm font-medium text-[var(--color-text-dim)]',
-              'hover:border-[var(--color-border-hover)] hover:text-[var(--color-text)]',
-              'transition-all duration-150 select-none',
-            )}
-          >
-            登录 / 注册
-          </Link>
+          {!user && (
+            <Link
+              href="/login"
+              className={cn(
+                'flex items-center gap-2 px-5 py-2.5 rounded-[var(--radius-md)]',
+                'border border-[var(--color-border)] bg-[var(--color-surface)]',
+                'text-sm font-medium text-[var(--color-text-dim)]',
+                'hover:border-[var(--color-border-hover)] hover:text-[var(--color-text)]',
+                'transition-all duration-150 select-none',
+              )}
+            >
+              登录 / 注册
+            </Link>
+          )}
         </div>
       </section>
 
@@ -171,7 +179,9 @@ export default function HomePage() {
             准备好开始了吗？
           </h2>
           <p className="text-sm text-[var(--color-text-dim)] leading-relaxed">
-            注册账号，记录每一次练习，追踪进步轨迹。 或者直接浏览书库，立即开始。
+            {user
+              ? '继续练习，追踪进步轨迹。'
+              : '注册账号，记录每一次练习，追踪进步轨迹。 或者直接浏览书库，立即开始。'}
           </p>
           <div className="flex items-center gap-3 mt-1">
             <Link
@@ -185,18 +195,20 @@ export default function HomePage() {
               立即开始
               <ArrowRight size={14} />
             </Link>
-            <Link
-              href="/register"
-              className={cn(
-                'px-5 py-2.5 rounded-[var(--radius-md)]',
-                'border border-[var(--color-border)]',
-                'text-sm font-medium text-[var(--color-text-dim)]',
-                'hover:border-[var(--color-border-hover)] hover:text-[var(--color-text)]',
-                'transition-all duration-150 select-none',
-              )}
-            >
-              免费注册
-            </Link>
+            {!user && (
+              <Link
+                href="/register"
+                className={cn(
+                  'px-5 py-2.5 rounded-[var(--radius-md)]',
+                  'border border-[var(--color-border)]',
+                  'text-sm font-medium text-[var(--color-text-dim)]',
+                  'hover:border-[var(--color-border-hover)] hover:text-[var(--color-text)]',
+                  'transition-all duration-150 select-none',
+                )}
+              >
+                免费注册
+              </Link>
+            )}
           </div>
         </div>
       </section>

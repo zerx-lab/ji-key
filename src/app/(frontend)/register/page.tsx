@@ -82,12 +82,10 @@ export default function RegisterPage() {
               'bg-[var(--color-accent)]',
             )}
           >
-            <Keyboard size={20} strokeWidth={2.5} className="text-black" />
+            <Keyboard size={20} strokeWidth={2.5} className="text-white" />
           </div>
           <div className="text-center">
-            <h1 className="text-xl font-bold text-[var(--color-text)] tracking-tight">
-              创建账号
-            </h1>
+            <h1 className="text-xl font-bold text-[var(--color-text)] tracking-tight">创建账号</h1>
             <p className="text-sm text-[var(--color-text-dim)] mt-1">
               加入 Ji-Key，记录你的每一次进步
             </p>
@@ -167,7 +165,8 @@ export default function RegisterPage() {
                     'focus:outline-none focus:border-[var(--color-accent)]',
                     'disabled:opacity-50 disabled:cursor-not-allowed',
                     'transition-colors duration-150',
-                    passwordTooShort && 'border-[var(--color-error)] focus:border-[var(--color-error)]',
+                    passwordTooShort &&
+                      'border-[var(--color-error)] focus:border-[var(--color-error)]',
                   )}
                 />
                 <button
@@ -215,7 +214,8 @@ export default function RegisterPage() {
                     'focus:outline-none focus:border-[var(--color-accent)]',
                     'disabled:opacity-50 disabled:cursor-not-allowed',
                     'transition-colors duration-150',
-                    passwordMismatch && 'border-[var(--color-error)] focus:border-[var(--color-error)]',
+                    passwordMismatch &&
+                      'border-[var(--color-error)] focus:border-[var(--color-error)]',
                   )}
                 />
                 <button
@@ -248,12 +248,19 @@ export default function RegisterPage() {
             {/* 提交按钮 */}
             <button
               type="submit"
-              disabled={loading || !email || !password || !confirmPassword || passwordMismatch || passwordTooShort}
+              disabled={
+                loading ||
+                !email ||
+                !password ||
+                !confirmPassword ||
+                passwordMismatch ||
+                passwordTooShort
+              }
               className={cn(
                 'w-full h-10 rounded-[var(--radius-md)]',
                 'text-sm font-semibold',
-                'bg-[var(--color-accent)] text-black',
-                'hover:bg-[var(--color-accent-dim)]',
+                'bg-[var(--color-accent)] text-white',
+                'hover:bg-[var(--color-accent-hover)]',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
                 'transition-all duration-150 select-none',
                 'flex items-center justify-center gap-2',
@@ -261,7 +268,7 @@ export default function RegisterPage() {
             >
               {loading ? (
                 <>
-                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-black border-t-transparent" />
+                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                   注册中…
                 </>
               ) : (

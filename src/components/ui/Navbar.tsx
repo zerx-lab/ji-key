@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   BookOpen,
   BarChart2,
@@ -51,8 +51,17 @@ const navItems: NavItem[] = [
 
 export function Navbar({ user }: NavbarProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+
+  async function handleLogout() {
+    await fetch('/api/users/logout', { method: 'POST' })
+    setUserMenuOpen(false)
+    setMobileOpen(false)
+    router.push('/')
+    router.refresh()
+  }
 
   const visibleItems = navItems.filter((item) => !item.requireAuth || user)
 
@@ -142,20 +151,19 @@ export function Navbar({ user }: NavbarProps) {
                         {user.email}
                       </p>
                     </div>
-                    <form action="/api/users/logout" method="POST">
-                      <button
-                        type="submit"
-                        className={cn(
-                          'w-full flex items-center gap-2 px-3 py-2',
-                          'text-sm text-[var(--color-text-dim)]',
-                          'hover:text-[var(--color-error)] hover:bg-[var(--color-surface-2)]',
-                          'transition-all duration-150 select-none',
-                        )}
-                      >
-                        <LogOut size={13} />
-                        退出登录
-                      </button>
-                    </form>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className={cn(
+                        'w-full flex items-center gap-2 px-3 py-2',
+                        'text-sm text-[var(--color-text-dim)]',
+                        'hover:text-[var(--color-error)] hover:bg-[var(--color-surface-2)]',
+                        'transition-all duration-150 select-none',
+                      )}
+                    >
+                      <LogOut size={13} />
+                      退出登录
+                    </button>
                   </div>
                 </>
               )}
@@ -241,20 +249,19 @@ export function Navbar({ user }: NavbarProps) {
                       {user.email}
                     </span>
                   </div>
-                  <form action="/api/users/logout" method="POST">
-                    <button
-                      type="submit"
-                      className={cn(
-                        'w-full flex items-center gap-2 px-3 py-2.5 rounded-[var(--radius-md)]',
-                        'text-sm font-medium text-[var(--color-text-dim)]',
-                        'hover:text-[var(--color-error)] hover:bg-[var(--color-surface-2)]',
-                        'transition-all duration-150 select-none',
-                      )}
-                    >
-                      <LogOut size={14} />
-                      退出登录
-                    </button>
-                  </form>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className={cn(
+                      'w-full flex items-center gap-2 px-3 py-2.5 rounded-[var(--radius-md)]',
+                      'text-sm font-medium text-[var(--color-text-dim)]',
+                      'hover:text-[var(--color-error)] hover:bg-[var(--color-surface-2)]',
+                      'transition-all duration-150 select-none',
+                    )}
+                  >
+                    <LogOut size={14} />
+                    退出登录
+                  </button>
                 </>
               ) : (
                 <>

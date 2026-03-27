@@ -54,12 +54,10 @@ export default function LoginPage() {
               'bg-[var(--color-accent)]',
             )}
           >
-            <Keyboard size={20} strokeWidth={2.5} className="text-black" />
+            <Keyboard size={20} strokeWidth={2.5} className="text-white" />
           </div>
           <div className="text-center">
-            <h1 className="text-xl font-bold text-[var(--color-text)] tracking-tight">
-              欢迎回来
-            </h1>
+            <h1 className="text-xl font-bold text-[var(--color-text)] tracking-tight">欢迎回来</h1>
             <p className="text-sm text-[var(--color-text-dim)] mt-1">登录你的 Ji-Key 账号</p>
           </div>
         </div>
@@ -172,8 +170,8 @@ export default function LoginPage() {
               className={cn(
                 'w-full h-10 rounded-[var(--radius-md)]',
                 'text-sm font-semibold',
-                'bg-[var(--color-accent)] text-black',
-                'hover:bg-[var(--color-accent-dim)]',
+                'bg-[var(--color-accent)] text-white',
+                'hover:bg-[var(--color-accent-hover)]',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
                 'transition-all duration-150 select-none',
                 'flex items-center justify-center gap-2',
@@ -181,7 +179,7 @@ export default function LoginPage() {
             >
               {loading ? (
                 <>
-                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-black border-t-transparent" />
+                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                   登录中…
                 </>
               ) : (

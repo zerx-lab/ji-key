@@ -101,6 +101,7 @@ interface SessionStats {
   correctChars: number
   errorChars: number
   totalChars: number
+  completed: boolean
 }
 
 interface ChapterRef {
@@ -172,6 +173,7 @@ export function TypingConsole({
   const [isFocused, setIsFocused] = useState(false)
   const [showChapterList, setShowChapterList] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState(false)
   const [displayLines, setDisplayLines] = useState(6)
   const [containerWidth, setContainerWidth] = useState(600)
 
@@ -241,6 +243,7 @@ export function TypingConsole({
       correctChars,
       errorChars,
       totalChars: lineContent.length,
+      completed: false, // 实时统计不代表已完成，仅在 finalStats 中赋真实值
     }
   }, [chars, elapsed, normalizedContent.length])
 
@@ -272,6 +275,7 @@ export function TypingConsole({
     setFinished(false)
     setElapsed(0)
     setSaving(false)
+    setSaveError(false)
     setTimeout(() => inputRef.current?.focus(), 30)
   }, [stopTimer])
 
@@ -288,8 +292,9 @@ export function TypingConsole({
     async (finalStats: SessionStats) => {
       if (!user) return
       setSaving(true)
+      setSaveError(false)
       try {
-        await fetch('/api/typing-sessions', {
+        const res = await fetch('/api/typing-sessions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -303,12 +308,17 @@ export function TypingConsole({
             duration: finalStats.duration,
             correctChars: finalStats.correctChars,
             errorChars: finalStats.errorChars,
-            totalChars: lineContent.length,
-            completed: true,
+            totalChars: finalStats.totalChars,
+            completed: finalStats.completed,
           }),
         })
-      } catch {
-        // 静默失败，不影响用户体验
+        if (!res.ok) {
+          console.error('[saveSession] API error:', res.status, await res.text().catch(() => ''))
+          setSaveError(true)
+        }
+      } catch (err) {
+        console.error('[saveSession] Network error:', err)
+        setSaveError(true)
       } finally {
         setSaving(false)
       }
@@ -318,21 +328,31 @@ export function TypingConsole({
   )
 
   // ── 完成检测（useEffect 统一处理） ──
+  // 只要把整章内容全部"填满"（无论是正确输入还是 Enter 跳过填充的空格），
+  // 即视为本次练习结束，触发保存。completed=true 仅当每个字符都完全匹配。
   useEffect(() => {
     if (finished || !started) return
-    if (input.length === lineContent.length && input === lineContent) {
+    if (input.length === lineContent.length) {
       stopTimer()
       setFinished(true)
       const finalElapsed = Math.max(1, Math.floor((Date.now() - startTimeRef.current) / 1000))
       setElapsed(finalElapsed)
-      const correctChars = lineContent.length
+      // 直接遍历计算，避免依赖 chars useMemo 的闭包时序问题
+      let correctCount = 0
+      let errorCount = 0
+      for (let i = 0; i < lineContent.length; i++) {
+        if (input[i] === lineContent[i]) correctCount++
+        else errorCount++
+      }
+      const isPerfect = input === lineContent
       const finalStats: SessionStats = {
-        wpm: calcWPM(correctChars, finalElapsed),
-        accuracy: 100,
+        wpm: calcWPM(correctCount, finalElapsed),
+        accuracy: calcAccuracy(correctCount, errorCount),
         duration: finalElapsed,
-        correctChars,
-        errorChars: 0,
+        correctChars: correctCount,
+        errorChars: errorCount,
         totalChars: lineContent.length,
+        completed: isPerfect,
       }
       saveSession(finalStats)
     }
@@ -634,7 +654,7 @@ export function TypingConsole({
 
                 return (
                   <div
-                    key={lineIdx}
+                    key={offset}
                     className={cn(
                       'transition-opacity duration-150',
                       isPastLine && 'opacity-30',
@@ -737,10 +757,18 @@ export function TypingConsole({
                   </p>
                   <p className="text-sm text-[var(--color-text-dim)]">
                     准确率 {stats.accuracy}% · {formatTime(elapsed)}
-                    {saving && (
-                      <span className="text-[var(--color-text-muted)] ml-2 text-xs">保存中…</span>
-                    )}
                   </p>
+                  {user && (
+                    <p className="text-xs">
+                      {saving && <span className="text-[var(--color-text-muted)]">保存中…</span>}
+                      {!saving && !saveError && (
+                        <span className="text-[var(--color-accent)]">✓ 已记录</span>
+                      )}
+                      {saveError && (
+                        <span className="text-[var(--color-error)]">保存失败，请检查登录状态</span>
+                      )}
+                    </p>
+                  )}
                 </div>
 
                 {/* 完成后操作 */}

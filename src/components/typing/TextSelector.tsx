@@ -105,7 +105,7 @@ export function TextSelector({ onSelect, currentText }: TextSelectorProps) {
                 className={cn(
                   'px-3 py-1 rounded-[var(--radius-sm)] text-xs font-medium transition-all duration-150 select-none',
                   mode === m
-                    ? 'bg-[var(--color-accent)] text-black'
+                    ? 'bg-[var(--color-accent)] text-white'
                     : 'text-[var(--color-text-dim)] hover:bg-[var(--color-surface-2)]',
                 )}
               >
@@ -210,7 +210,7 @@ export function TextSelector({ onSelect, currentText }: TextSelectorProps) {
                     'px-4 py-1.5 rounded-[var(--radius-md)]',
                     'text-sm font-medium transition-all duration-150 select-none',
                     customText.trim().length >= 10
-                      ? 'bg-[var(--color-accent)] text-black hover:bg-[var(--color-accent-dim)]'
+                      ? 'bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)]'
                       : 'bg-[var(--color-surface-2)] text-[var(--color-text-muted)] cursor-not-allowed opacity-50',
                   )}
                 >
