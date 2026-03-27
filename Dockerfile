@@ -36,7 +36,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # 降低内存上限，适应生产服务器
 ENV NODE_OPTIONS="--no-deprecation --max-old-space-size=4096"
 
-RUN ./node_modules/.bin/next build > /tmp/build.log 2>&1 || (cat /tmp/build.log && exit 1)
+RUN ./node_modules/.bin/next build > /tmp/build.log 2>&1 || (cat /tmp/build.log && exit 1) \
+  && mkdir -p /app/public
 
 # ── 运行阶段 ──────────────────────────────────────────────
 FROM node:22-alpine AS runner
