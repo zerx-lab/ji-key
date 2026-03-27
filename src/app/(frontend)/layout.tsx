@@ -27,19 +27,9 @@ export default async function FrontendLayout({ children }: { children: React.Rea
         />
       </head>
       <body>
-        <div className="flex min-h-[100dvh] flex-col bg-[var(--color-bg)]">
+        <div className="flex h-[100dvh] flex-col bg-[var(--color-bg)]">
           <Navbar user={user ? { email: user.email } : null} />
-          <main className="flex-1">{children}</main>
-          <footer className="border-t border-[var(--color-border)] py-5 mt-auto">
-            <div className="mx-auto max-w-5xl px-6 flex items-center justify-between">
-              <span className="text-xs text-[var(--color-text-muted)] select-none font-[var(--font-sans)]">
-                Ji-Key &copy; {new Date().getFullYear()}
-              </span>
-              <span className="text-xs text-[var(--color-text-muted)] select-none font-[var(--font-sans)]">
-                以文学为舟，渡至流畅之境
-              </span>
-            </div>
-          </footer>
+          <main className="flex-1 flex flex-col min-h-0">{children}</main>
         </div>
       </body>
     </html>

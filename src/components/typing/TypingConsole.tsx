@@ -19,31 +19,64 @@ import { cn } from '@/lib/utils'
    行间用 \n 连接 —— 用户必须按 Enter 才能
    跨行，Enter 在打字逻辑中匹配 \n 字符。
 ──────────────────────────────────────────── */
-const CHARS_PER_LINE = 55
+const LINE_HEIGHT_EM = 1.85
+const FONT_SIZE_PX = 18 // typing-text font-size: 1.125rem = 18px
+const LINE_HEIGHT_PX = LINE_HEIGHT_EM * FONT_SIZE_PX // ~33.3px
+
+// Lora 字体实测：中文字符约 21.6px，英文/数字约 0.6em
+const CJK_CHAR_WIDTH_PX = 21.6 // Lora 字体中文实测值
+const ASCII_CHAR_WIDTH_PX = FONT_SIZE_PX * 0.6 // 英文/数字/标点约 0.6em
+
+/** 估算单个字符的像素宽度（中文 vs ASCII） */
+function charWidthPx(ch: string): number {
+  const code = ch.charCodeAt(0)
+  // CJK 统一表意文字、全角标点等
+  if (
+    (code >= 0x4e00 && code <= 0x9fff) || // CJK 基本区
+    (code >= 0x3000 && code <= 0x303f) || // CJK 标点
+    (code >= 0xff00 && code <= 0xffef) || // 全角
+    (code >= 0x2e80 && code <= 0x2eff) // CJK 部首
+  ) {
+    return CJK_CHAR_WIDTH_PX
+  }
+  return ASCII_CHAR_WIDTH_PX
+}
 
 /**
- * 把单行流文本按软断行分组，行间插入 \n。
- * 返回含 \n 的字符串，打字时 Enter = \n。
+ * 把单行流文本按像素宽度断行。
+ * containerWidth: 容器可用宽度（px），默认 600px。
+ * 行间插入 \n，打字时 Enter 匹配 \n。
  */
-function splitIntoLines(text: string): string {
+function splitIntoLines(text: string, containerWidth = 600): string {
   const lines: string[] = []
   let remaining = text
 
   while (remaining.length > 0) {
-    if (remaining.length <= CHARS_PER_LINE) {
+    // 贪心：累积字符直到超过容器宽度
+    let width = 0
+    let breakAt = 0
+    let lastSpaceAt = -1
+
+    for (let i = 0; i < remaining.length; i++) {
+      const ch = remaining[i]
+      width += charWidthPx(ch)
+      if (ch === ' ') lastSpaceAt = i
+      if (width > containerWidth) {
+        // 超宽：优先在上一个空格处断，否则强制断
+        breakAt = lastSpaceAt > 0 ? lastSpaceAt : i
+        break
+      }
+      breakAt = i + 1 // 还未超宽，暂定到此处
+    }
+
+    if (breakAt <= 0 || breakAt >= remaining.length) {
+      // 剩余内容全部放入最后一行
       lines.push(remaining)
       break
     }
-    // 在 CHARS_PER_LINE 处向前找最近的空格断行
-    let breakAt = CHARS_PER_LINE
-    while (breakAt > 0 && remaining[breakAt] !== ' ') {
-      breakAt--
-    }
-    // 找不到空格（长单词），强制在 CHARS_PER_LINE 处断
-    if (breakAt === 0) breakAt = CHARS_PER_LINE
 
     lines.push(remaining.slice(0, breakAt))
-    // 跳过断行处的空格，改为 \n 连接
+    // 跳过断行处的空格
     remaining = remaining.slice(remaining[breakAt] === ' ' ? breakAt + 1 : breakAt)
   }
 
@@ -139,15 +172,21 @@ export function TypingConsole({
   const [isFocused, setIsFocused] = useState(false)
   const [showChapterList, setShowChapterList] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [displayLines, setDisplayLines] = useState(6)
+  const [containerWidth, setContainerWidth] = useState(600)
 
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const startTimeRef = useRef<number>(0)
   const textContainerRef = useRef<HTMLDivElement>(null)
+  const centerColRef = useRef<HTMLDivElement>(null)
 
   // ── 把 normalizedContent 按行分组（行间用 \n） ──
   // lineContent 是含 \n 的字符串，用户打字时 Enter 匹配 \n
-  const lineContent = useMemo(() => splitIntoLines(normalizedContent), [normalizedContent])
+  const lineContent = useMemo(
+    () => splitIntoLines(normalizedContent, containerWidth),
+    [normalizedContent, containerWidth],
+  )
   const lines = useMemo(() => lineContent.split('\n'), [lineContent])
 
   // ── 字符数组（derived，基于 lineContent） ──
@@ -175,7 +214,7 @@ export function TypingConsole({
     return Math.max(0, lines.length - 1)
   }, [lines, cursorIndex])
 
-  // 显示从 displayStartLine 开始的 3 行
+  // 显示从 displayStartLine 开始的 displayLines 行，当前行尽量保持在第 2 行
   const displayStartLine = useMemo(() => {
     return Math.max(0, currentLineIndex - 1)
   }, [currentLineIndex])
@@ -394,8 +433,31 @@ export function TypingConsole({
     return () => window.removeEventListener('keydown', handleGlobalKey)
   }, [finished])
 
+  // 根据中央列的可用高度动态计算行数，同时获取文字容器宽度
+  useEffect(() => {
+    const el = centerColRef.current
+    if (!el) return
+    const measure = () => {
+      const colH = el.clientHeight
+      // 减去：章节标题区约 68px + 操作栏约 24px + py-8 padding 64px
+      const available = colH - 68 - 24 - 64
+      const lines = Math.max(3, Math.floor(available / LINE_HEIGHT_PX))
+      setDisplayLines(lines)
+
+      // 文字容器宽度 = 中央列宽度，减去左右 padding（px-6 = 24px * 2，lg 以上无 padding）
+      const colW = el.clientWidth
+      // max-w-[640px] 限制，留 40px 安全余量避免中文字符估算误差导致溢出
+      const textW = Math.min(colW - 48, 600)
+      setContainerWidth(Math.max(200, textW))
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   return (
-    <div className="flex flex-col min-h-[calc(100dvh-56px)]">
+    <div className="flex flex-col h-full">
       {/* ══════════════════════════════
           顶部面包屑 + 实时统计栏
       ══════════════════════════════ */}
@@ -411,7 +473,7 @@ export function TypingConsole({
             </Link>
             <span className="text-[var(--color-border-hover)] shrink-0">/</span>
             <Link
-              href={`/practice/${articleId}/0`}
+              href={`/books/${articleId}`}
               className="text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors duration-150 truncate max-w-[120px] sm:max-w-[200px]"
             >
               {articleTitle}
@@ -450,7 +512,7 @@ export function TypingConsole({
       {/* ══════════════════════════════
           主体：两列布局（空白 + 文本）
       ══════════════════════════════ */}
-      <div className="flex-1 flex">
+      <div className="flex-1 flex min-h-0">
         {/* 左侧空白区域（章节列表抽屉触发区） */}
         <div className="hidden lg:flex flex-col items-end pt-12 pr-10 w-64 xl:w-80 shrink-0">
           <button
@@ -511,9 +573,12 @@ export function TypingConsole({
         </div>
 
         {/* 中央文本区域 */}
-        <div className="flex-1 flex flex-col items-center px-6 lg:px-0">
+        <div
+          ref={centerColRef}
+          className="flex-1 flex flex-col items-center justify-center px-6 lg:px-0 py-8 min-h-0"
+        >
           {/* 章节标题 */}
-          <div className="w-full max-w-[640px] pt-10 pb-4">
+          <div className="w-full max-w-[640px] pb-5">
             <p className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider select-none mb-1">
               第 {chapterIndex + 1} 章 / 共 {totalChapters} 章
             </p>
@@ -550,12 +615,12 @@ export function TypingConsole({
               </div>
             )}
 
-            {/* 文字渲染：固定 3 行显示，整行滚动 */}
+            {/* 文字渲染：动态行数，整行滚动 */}
             <div
               className="typing-text py-1 select-none overflow-hidden"
-              style={{ height: 'calc(1.85em * 3)' }}
+              style={{ height: `calc(${LINE_HEIGHT_EM}em * ${displayLines})` }}
             >
-              {[0, 1, 2].map((offset) => {
+              {Array.from({ length: displayLines }, (_, offset) => offset).map((offset) => {
                 const lineIdx = displayStartLine + offset
                 if (lineIdx >= lines.length)
                   return <div key={offset} style={{ height: '1.85em' }} />
@@ -575,7 +640,7 @@ export function TypingConsole({
                       isPastLine && 'opacity-30',
                       isFutureLine && 'opacity-50',
                     )}
-                    style={{ height: '1.85em', whiteSpace: 'pre' }}
+                    style={{ height: '1.85em', whiteSpace: 'nowrap', overflow: 'hidden' }}
                   >
                     {lineText.split('').map((ch, j) => {
                       const globalIdx = lineStart + j

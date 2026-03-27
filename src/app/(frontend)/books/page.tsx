@@ -168,7 +168,7 @@ function BookCard({ article, featured = false }: { article: Article; featured?: 
   const lang = article.language ?? 'zh'
   const category = article.category ?? 'other'
 
-  const href = `/practice/${article.id}/0`
+  const href = `/books/${article.id}`
 
   return (
     <Link
@@ -247,7 +247,7 @@ function BookCard({ article, featured = false }: { article: Article; featured?: 
               'transition-opacity duration-150 select-none',
             )}
           >
-            开始
+            查看章节
             <ChevronRight size={12} />
           </span>
         </div>

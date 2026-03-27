@@ -1,7 +1,7 @@
 # SQLite + Next.js standalone 生产镜像
 # 依赖 next.config.ts 中 output: 'standalone'
 
-FROM node:22-alpine AS base
+FROM oven/bun:1-alpine AS base
 
 # ── 安装阶段 ──────────────────────────────────────────────
 FROM base AS deps
@@ -10,8 +10,8 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat python3 make g++
 WORKDIR /app
 
-COPY package.json bun.lock* pnpm-lock.yaml* ./
-RUN corepack enable pnpm && pnpm i --frozen-lockfile
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
 # ── 构建阶段 ──────────────────────────────────────────────
 FROM base AS builder
@@ -26,10 +26,10 @@ ENV DATABASE_URL=file:/tmp/build.db
 ENV PAYLOAD_SECRET=build-time-secret-placeholder
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN corepack enable pnpm && pnpm run build
+RUN bun run build
 
 # ── 运行阶段 ──────────────────────────────────────────────
-FROM base AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -47,6 +47,11 @@ RUN mkdir .next && chown nextjs:nodejs .next
 
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# 复制 better-sqlite3 原生模块（standalone 模式不会自动打包 .node 文件）
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/bindings ./node_modules/bindings
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/file-uri-to-path ./node_modules/file-uri-to-path
 
 USER nextjs
 
